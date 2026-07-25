@@ -12,6 +12,7 @@ def test_guardar_y_leer_on(session):
         denominacion="ON YPF clase 42",
         empresa="YPF",
         tasa_nominal_anual=7.0,
+        fecha_inicio=date(2023, 3, 2),
         fecha_vencimiento=date(2029, 3, 2),
         monto_nominal=15000.0,
     )
@@ -22,6 +23,7 @@ def test_guardar_y_leer_on(session):
         denominacion="ON Pampa Energía Clase 9",
         empresa="Pampa Energía",
         tasa_nominal_anual=5.0,
+        fecha_inicio=date(2024, 6, 15),
         fecha_vencimiento=date(2027, 6, 15),
         monto_nominal=10000.0,
     )
@@ -32,6 +34,7 @@ def test_guardar_y_leer_on(session):
         denominacion="ON Compañía General de Combustibles",
         empresa="CGC",
         tasa_nominal_anual=12.0,
+        fecha_inicio=date(2025, 11, 1),
         fecha_vencimiento=date(2028, 11, 1),
         monto_nominal=8000.0,
     )
