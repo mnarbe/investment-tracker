@@ -4,3 +4,5 @@ pytest
 httpx
 python-dateutil
 scipy
+pandas
+openpyxl

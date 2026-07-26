@@ -33,5 +33,7 @@ class ObligacionNegociable(SQLModel, table=True):
     fecha_vencimiento: date
 
     monto_nominal: float
-
+    
+    precio_compra_mercado_secundario: Optional[float] = None
+    
     frecuencia_pago: FrecuenciaPago = FrecuenciaPago.AL_FINALIZAR

@@ -1,35 +1,3 @@
-# =============================================================================
-# ETAPA 6 — Cupones periódicos y TIRE con búsqueda numérica
-# =============================================================================
-#
-# ¿Por qué ya no se puede despejar r a mano?
-# Con un solo pago, la ecuación P = (C+A)/(1+r)^t tiene una sola incógnita
-# y una potencia: se despeja con un poco de álgebra (lo que ya hiciste).
-# Con VARIOS pagos, r aparece elevado a distintas potencias en cada término
-# de la suma (t1, t2, t3...) — no hay forma de "despejar r" con operaciones
-# algebraicas normales. Es un polinomio de grado alto, básicamente.
-#
-# La solución: en vez de DESPEJAR, ADIVINAMOS y corregimos. La idea:
-#   1. Definimos una función f(r) = (valor presente de todos los pagos,
-#      usando esa tasa r) - (precio que pagaste hoy)
-#   2. Buscamos qué r hace que f(r) = 0 -- ese r ES la TIRE, por
-#      definición (retomá la fórmula de tu docx: la TIRE es la tasa que
-#      iguala precio con valor presente de los flujos).
-#   3. Un algoritmo numérico prueba valores de r, mirando si f(r) da
-#      positivo o negativo, y va acotando el rango hasta encontrar
-#      (con muchísima precisión) el r donde f(r) cruza el cero.
-#
-# Nosotros no escribimos ese algoritmo de búsqueda a mano: usamos
-# `scipy.optimize.brentq`, que lo hace por vos. Le pasás:
-#   - la función f(r)
-#   - un rango [a, b] donde f cambia de signo (ahí "sabe" que el cero
-#     está adentro)
-# y te devuelve el r que hace f(r) = 0.
-#
-# -----------------------------------------------------------------------
-# TU TAREA — 2 funciones para completar
-# -----------------------------------------------------------------------
-
 from dataclasses import dataclass
 from datetime import date
 
