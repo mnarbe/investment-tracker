@@ -6,3 +6,5 @@ python-dateutil
 scipy
 pandas
 openpyxl
+psycopg2-binary
+sqlmodel
