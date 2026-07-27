@@ -6,11 +6,7 @@ from sqlmodel import Field, SQLModel
 
 
 class FrecuenciaPago(str, Enum):
-    """Un Enum ("enumeración") restringe un campo a un set fijo de valores
-    válidos — evita que alguien guarde "semestrl" (typo) o "SEMESTRAL"
-    (mayúsculas distintas) sin que nadie se dé cuenta. Al heredar de `str`
-    además de `Enum`, SQLModel puede guardarlo directo como texto en la
-    base, y en Python lo comparás como si fuera un string normal."""
+    """ENUM para evitar typos"""
 
     MENSUAL = "mensual"
     TRIMESTRAL = "trimestral"

@@ -1,10 +1,19 @@
+from contextlib import contextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import crear_tablas
-from app.routers import bonos
+from app.routers import bonos, dashboard
 
-app = FastAPI(title="ON Tracker")
+@contextmanager
+def lifespan(app: FastAPI):
+    # Se ejecuta una sola vez, cuando arranca el servidor: crea las tablas
+    # si todavía no existen (no borra nada si ya existían).
+    crear_tablas()
+    yield
+
+app = FastAPI(title="ON Tracker", lifespan=lifespan)
 
 # Para evitar error CORS
 app.add_middleware(
@@ -15,13 +24,7 @@ app.add_middleware(
 )
 
 app.include_router(bonos.router)
-
-
-@app.on_event("startup")
-def on_startup():
-    # Se ejecuta una sola vez, cuando arranca el servidor: crea las tablas
-    # si todavía no existen (no borra nada si ya existían).
-    crear_tablas()
+app.include_router(dashboard.router)
 
 
 @app.get("/health")

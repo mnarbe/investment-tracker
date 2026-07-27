@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.models import ObligacionNegociable
+from app.models import ObligacionNegociable, Banco, FrecuenciaPago
 
 
 def test_guardar_y_leer_on(session):
@@ -15,6 +15,8 @@ def test_guardar_y_leer_on(session):
         fecha_inicio=date(2023, 3, 2),
         fecha_vencimiento=date(2029, 3, 2),
         monto_nominal=15000.0,
+        banco=Banco.BBVA,
+        frecuencia_pago=FrecuenciaPago.SEMESTRAL
     )
 
     # Pampa Energía - tasa más baja
@@ -26,6 +28,8 @@ def test_guardar_y_leer_on(session):
         fecha_inicio=date(2024, 6, 15),
         fecha_vencimiento=date(2027, 6, 15),
         monto_nominal=10000.0,
+        banco=Banco.SANTANDER,
+        frecuencia_pago=FrecuenciaPago.AL_FINALIZAR
     )
 
     # CGC - tasa alta, perfil de mayor riesgo
@@ -37,6 +41,7 @@ def test_guardar_y_leer_on(session):
         fecha_inicio=date(2025, 11, 1),
         fecha_vencimiento=date(2028, 11, 1),
         monto_nominal=8000.0,
+        banco=Banco.BBVA
     )
     
     # ===ACT (guardar)===
@@ -56,11 +61,14 @@ def test_guardar_y_leer_on(session):
     assert ypf_encontrada is not None
     assert ypf_encontrada.empresa == "YPF"
     assert ypf_encontrada.monto_nominal == 15000
+    assert ypf_encontrada.banco == "BBVA"
     
     assert pampa_encontrada is not None
     assert pampa_encontrada.empresa == "Pampa Energía"
     assert pampa_encontrada.monto_nominal == 10000
+    assert pampa_encontrada.banco == "Santander"
     
     assert cgc_encontrada is not None
     assert cgc_encontrada.empresa == "CGC"
     assert cgc_encontrada.monto_nominal == 8000
+    assert cgc_encontrada.banco == "BBVA"
