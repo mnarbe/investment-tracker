@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,10 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import crear_tablas
 from app.routers import bonos, dashboard
 
-@contextmanager
-def lifespan(app: FastAPI):
-    # Se ejecuta una sola vez, cuando arranca el servidor: crea las tablas
-    # si todavía no existen (no borra nada si ya existían).
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     crear_tablas()
     yield
 

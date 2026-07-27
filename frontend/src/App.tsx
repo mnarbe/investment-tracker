@@ -1,57 +1,36 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Dashboard } from "./components/Dashboard";
+import { TablaBonos } from "./components/TablaBonos";
+import { ProximosPagos } from "./components/ProximosPagos";
 
-interface Bono {
-  id: number;
-  ticker: string | null;
-  denominacion: string;
-  empresa: string;
-  tasa_nominal_anual: number;
-  monto_nominal: number;
-  fecha_vencimiento: string;
-  tire_actual: number | null;
-}
+type Vista = "dashboard" | "tabla" | "pagos";
 
 function App() {
-  const [bonos, setBonos] = useState<Bono[]>([]);
-
-  useEffect(() => {
-    fetch("http://localhost:8000/bonos")
-    .then((respuesta) => respuesta.json())
-    .then((datos) => setBonos(datos))
-    .catch((error) => {
-      console.error("Error al cargar bonos:", error);
-    });
-  }, []);
+  const [vista, setVista] = useState<Vista>("dashboard");
 
   return (
-    <div style={{ padding: 24, fontFamily: "sans-serif" }}>
-      <h1>Mis Obligaciones Negociables</h1>
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>Ticker</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>Empresa</th>
-            <th style={{ textAlign: "right", borderBottom: "1px solid #ccc" }}>Monto</th>
-            <th style={{ textAlign: "right", borderBottom: "1px solid #ccc" }}>Tasa</th>
-            <th style={{ textAlign: "right", borderBottom: "1px solid #ccc" }}>TIRE</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>Vencimiento</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bonos.map((b) => (
-            <tr key={b.id}>
-              <td>{b.ticker ?? "—"}</td>
-              <td>{b.empresa}</td>
-              <td style={{ textAlign: "right" }}>{b.monto_nominal}</td>
-              <td style={{ textAlign: "right" }}>{b.tasa_nominal_anual}%</td>
-              <td style={{ textAlign: "right" }}>
-                {b.tire_actual !== null ? `${b.tire_actual}%` : "—"}
-              </td>
-              <td>{b.fecha_vencimiento}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="min-h-screen bg-slate-50">
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">ON Tracker</h1>
+            <p className="text-xs text-slate-400">Seguimiento de Obligaciones Negociables</p>
+          </div>
+          <nav className="flex gap-1 rounded-lg bg-slate-100 p-1">
+            {([["dashboard", "Resumen"], ["tabla", "Mis ONs"], ["pagos", "Próximos pagos"]] as [Vista, string][]).map(([key, label]) => (
+              <button key={key} onClick={() => setVista(key)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${vista === key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </header>
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        {vista === "dashboard" && <Dashboard />}
+        {vista === "tabla" && <TablaBonos />}
+        {vista === "pagos" && <ProximosPagos />}
+      </main>
     </div>
   );
 }
