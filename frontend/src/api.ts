@@ -9,11 +9,11 @@ export interface Bono {
   denominacion: string;
   empresa: string;
   banco: string;
+  tipo_mercado: string;
   tasa_nominal_anual: number;
   monto_nominal: number;
+  fecha_inicio: string | null;
   fecha_vencimiento: string;
-  precio_compra_mercado_secundario: number | null;
-  tire_actual: number | null;
 }
 
 export interface ResumenDashboard {
@@ -28,11 +28,6 @@ export const fetchBonos = () => api.get<Bono[]>("/bonos").then((r) => r.data);
 
 export const fetchResumen = () =>
   api.get<ResumenDashboard>("/dashboard/resumen").then((r) => r.data);
-
-export const actualizarPrecio = (id: number, precio: number) =>
-  api
-    .patch<Bono>(`/bonos/${id}/precio`, { precio_compra_mercado_secundario: precio })
-    .then((r) => r.data);
 
 export interface EventoPago {
   fecha: string;

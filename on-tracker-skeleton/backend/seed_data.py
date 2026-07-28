@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*-
 import sys
+from datetime import date
 
 import pandas as pd
 from sqlmodel import Session
 
 from app.database import crear_tablas, engine
-from app.models import ObligacionNegociable, Banco, FrecuenciaPago
+from app.models import Banco, FrecuenciaPago, ObligacionNegociable, TipoMercado
+
 
 def _banco_desde_texto(texto) -> Banco | None:
     if not isinstance(texto, str):
@@ -14,11 +17,11 @@ def _banco_desde_texto(texto) -> Banco | None:
         return Banco.BBVA
     if t == "santander":
         return Banco.SANTANDER
-    return None
+    return Banco.OTRO
  
 def _frecuencia_desde_texto(texto) -> FrecuenciaPago:
     if not isinstance(texto, str):
-        return FrecuenciaPago.AL_FINALIZAR  # default si la celda está vacía
+        return FrecuenciaPago.AL_FINALIZAR
     t = texto.lower()
     if "mensual" in t:
         return FrecuenciaPago.MENSUAL
@@ -28,45 +31,80 @@ def _frecuencia_desde_texto(texto) -> FrecuenciaPago:
         return FrecuenciaPago.SEMESTRAL
     return FrecuenciaPago.AL_FINALIZAR
 
+
+def _parse_numero(valor) -> float | None:
+    if pd.isna(valor) or valor is None:
+        return None
+    if isinstance(valor, (int, float)):
+        return float(valor)
+    texto = str(valor).strip().replace("$", "").replace("%", "").replace(",", "")
+    try:
+        return float(texto)
+    except ValueError:
+        return None
+
+
+def _parse_fecha(valor) -> date | None:
+    if pd.isna(valor) or valor is None:
+        return None
+    if isinstance(valor, date):
+        return valor
+    try:
+        return pd.to_datetime(valor).date()
+    except Exception:
+        return None
+
+
+def _leer_celda(fila, *nombres):
+    for nombre in nombres:
+        if nombre in fila and not pd.isna(fila[nombre]):
+            return fila[nombre]
+    return None
+
+
 def importar(path_excel: str) -> None:
     df = pd.read_excel(path_excel, sheet_name="Inversiones")
-    df.columns = [c.strip() for c in df.columns]
+    df.columns = [c.strip().lower() for c in df.columns]
 
     crear_tablas()
 
     with Session(engine) as session:
         for indice, fila in df.iterrows():
-            
-            denominacion = fila["denominación"]
-            empresa = fila["empresa"]
-            tasa = fila["tasa"]
-            vto = fila["vto"]
-            monto = fila["Monto"]
-            banco = _banco_desde_texto(fila["cuenta en"])
-            frecuencia = _frecuencia_desde_texto(fila["pago intereses"])
+            denominacion = _leer_celda(fila, "denominaci�n", "denominacion")
+            empresa = _leer_celda(fila, "empresa")
+            tasa = _parse_numero(_leer_celda(fila, "tasa", "tasa normal", "tasa mercado primario", "tasa mercado secundario"))
+            vto = _parse_fecha(_leer_celda(fila, "vto", "vencimiento", "vencimiento u$", "vencimiento u$s"))
+            monto = _parse_numero(_leer_celda(fila, "monto", "monto nominal"))
+            inicio = _parse_fecha(_leer_celda(fila, "inicio", "fecha inicio", "fecha_inicio"))
+            tipo_mercado_texto = _leer_celda(fila, "tipo de mercado", "tipo mercado", "mercado")
+            tipo_mercado = TipoMercado.PRIMARIO
+            if isinstance(tipo_mercado_texto, str) and tipo_mercado_texto.strip().lower() == "secundario":
+                tipo_mercado = TipoMercado.SECUNDARIO
 
-            if pd.isna(denominacion) or pd.isna(empresa) or pd.isna(tasa) or pd.isna(vto) or pd.isna(monto) or pd.isna(banco):
+            banco = _banco_desde_texto(_leer_celda(fila, "cuenta en", "cuenta", "banco"))
+            frecuencia = _frecuencia_desde_texto(_leer_celda(fila, "pago intereses"))
+
+            if pd.isna(denominacion) or pd.isna(empresa) or tasa is None or vto is None or monto is None or banco is None:
                 print(f"Salteando fila {indice}: falta un dato obligatorio")
                 continue
-            
-            
-            precio = fila["compra MKT SECUNDARIO"]
+
             on = ObligacionNegociable(
-                ticker=fila["ON"] if not pd.isna(fila["ON"]) else None,
-                denominacion=denominacion,
-                empresa=empresa.strip(),
-                tasa_nominal_anual=float(tasa),
-                fecha_vencimiento=vto.date(),
-                monto_nominal=float(monto),
-                precio_compra_mercado_secundario=float(precio) if not pd.isna(precio) else None,
+                ticker=_leer_celda(fila, "on"),
+                denominacion=str(denominacion).strip(),
+                empresa=str(empresa).strip(),
+                tasa_nominal_anual=tasa,
+                fecha_vencimiento=vto,
+                monto_nominal=monto,
                 banco=banco,
-                frecuencia_pago=frecuencia
+                frecuencia_pago=frecuencia,
+                tipo_mercado=tipo_mercado,
+                fecha_inicio=inicio,
             )
             session.add(on)
 
         session.commit()
 
-    print("Importación terminada")
+    print("Importaci�n terminada")
 
 
 if __name__ == "__main__":

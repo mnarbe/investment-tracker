@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from datetime import date
 
 from dateutil.relativedelta import relativedelta
-from scipy.optimize import brentq
 
 from app.models import FrecuenciaPago, ObligacionNegociable
 
@@ -26,8 +25,10 @@ class Pago:
 
 def generar_flujo_de_fondos(on: ObligacionNegociable, desde: date | None = None) -> list[Pago]:
     """Genera la lista de pagos futuros de la ON, desde `desde` (default hoy)
-    hasta el vencimiento"""
+    hasta el vencimiento."""
     desde = desde or date.today()
+    if on.fecha_inicio and on.fecha_inicio > desde:
+        desde = on.fecha_inicio
 
     # Caso todo se paga al finalizar
     if on.frecuencia_pago == FrecuenciaPago.AL_FINALIZAR:
@@ -35,47 +36,22 @@ def generar_flujo_de_fondos(on: ObligacionNegociable, desde: date | None = None)
         cupon = on.monto_nominal * (on.tasa_nominal_anual / 100) * años
         return [Pago(fecha=on.fecha_vencimiento, cupon=cupon, amortizacion=on.monto_nominal)]
 
-    # Caso se paga por mes
+    # Caso se paga por frecuencia periódica
     meses = MESES_POR_FRECUENCIA[on.frecuencia_pago]
-    cupon_por_pago = on.monto_nominal * (on.tasa_nominal_anual/100) * (meses/12)
-    
-    # fechas de pago
+    cupon_por_pago = on.monto_nominal * (on.tasa_nominal_anual / 100) * (meses / 12)
+
     fechas = []
     cursor = on.fecha_vencimiento
     while cursor >= desde:
         fechas.append(cursor)
         cursor = cursor - relativedelta(months=meses)
     fechas.sort()
-    
+
     pagos = []
     for indice, fecha in enumerate(fechas):
-        if(indice == len(fechas)-1):
+        if indice == len(fechas) - 1:
             pagos.append(Pago(fecha, cupon_por_pago, on.monto_nominal))
         else:
             pagos.append(Pago(fecha, cupon_por_pago, 0))
-        
+
     return pagos
-
-
-def calcular_tire(on: ObligacionNegociable, precio_mercado_pct: float, desde: date | None = None) -> float:
-    """Calcula la TIRE (en %) buscando numéricamente la tasa r que hace que
-    el valor presente del flujo de fondos sea igual al precio de mercado"""
-    desde = desde or date.today()
-    flujo = generar_flujo_de_fondos(on, desde=desde)
-    precio_en_dolares = on.monto_nominal * (precio_mercado_pct / 100)
-
-    if precio_en_dolares <= 0:
-        raise ValueError("precio_mercado_pct debe ser mayor que 0")
-    if not flujo:
-        raise ValueError("no hay pagos futuros para esta ON")
-
-    def valor_presente_neto(r):
-        valor_presente_total = 0
-        for pago in flujo:
-            t_anios = (pago.fecha - desde).days / 365
-            valor_presente_total += pago.total/(1+r)**t_anios
-        return(valor_presente_total-precio_en_dolares)
-
-    r = brentq(valor_presente_neto, -0.5, 2.0) # TIRE entre -50% y +200% anual
-    
-    return round(r*100, 2)
