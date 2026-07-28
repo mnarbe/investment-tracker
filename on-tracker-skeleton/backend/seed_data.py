@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import sys
+import os
 from datetime import date
 
 import pandas as pd
-from sqlmodel import Session
+from sqlmodel import Session, delete
 
 from app.database import crear_tablas, engine
 from app.models import Banco, FrecuenciaPago, ObligacionNegociable, TipoMercado
@@ -62,13 +63,17 @@ def _leer_celda(fila, *nombres):
     return None
 
 
-def importar(path_excel: str) -> None:
+def importar(path_excel: str, limpiar_existentes: bool = True) -> None:
     df = pd.read_excel(path_excel, sheet_name="Inversiones")
     df.columns = [c.strip().lower() for c in df.columns]
 
     crear_tablas()
 
     with Session(engine) as session:
+        if limpiar_existentes:
+            session.exec(delete(ObligacionNegociable))
+            session.commit()
+
         for indice, fila in df.iterrows():
             denominacion = _leer_celda(fila, "denominaci�n", "denominacion")
             empresa = _leer_celda(fila, "empresa")
@@ -108,5 +113,5 @@ def importar(path_excel: str) -> None:
 
 
 if __name__ == "__main__":
-    ruta = sys.argv[1] if len(sys.argv) > 1 else "..\..\Libro1.xlsx"
+    ruta = sys.argv[1] if len(sys.argv) > 1 else os.path.join("..", "..", "Libro1.xlsx")
     importar(ruta)

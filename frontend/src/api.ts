@@ -26,6 +26,8 @@ export interface ResumenDashboard {
 
 export const fetchBonos = () => api.get<Bono[]>("/bonos").then((r) => r.data);
 
+export const reimportarBonos = () => api.post<{ message: string }>('/bonos/reimportar').then((r) => r.data);
+
 export const fetchResumen = () =>
   api.get<ResumenDashboard>("/dashboard/resumen").then((r) => r.data);
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchBonos, type Bono } from "../api";
+import { fetchBonos, reimportarBonos, type Bono } from "../api";
 
 function formatearFecha(iso: string | null): string {
   if (!iso) return "—";
@@ -15,15 +15,50 @@ function formatearTipoMercado(tipo: string): string {
 export function TablaBonos() {
   const [bonos, setBonos] = useState<Bono[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const cargarBonos = () =>
+    fetchBonos()
+      .then(setBonos)
+      .catch(() => {
+        setError("No se pudo conectar con el servidor.");
+        throw new Error("No se pudo conectar con el servidor.");
+      });
 
   useEffect(() => {
-    fetchBonos().then(setBonos).catch(() => setError("No se pudo conectar con el servidor."));
+    void cargarBonos();
   }, []);
 
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  const handleReimportar = async () => {
+    setIsImporting(true);
+    setError(null);
+
+    try {
+      await reimportarBonos();
+      await cargarBonos();
+    } catch {
+      setError("No se pudo volver a importar los datos.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div>
+      <div className="mb-4 flex justify-end">
+        <button
+          type="button"
+          onClick={handleReimportar}
+          disabled={isImporting}
+          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+        >
+          {isImporting ? "Importando..." : "Reimportar datos"}
+        </button>
+      </div>
+
+      {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
+
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
           <tr>
@@ -52,6 +87,7 @@ export function TablaBonos() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
