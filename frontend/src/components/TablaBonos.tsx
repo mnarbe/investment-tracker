@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchBonos, reimportarBonos, type Bono } from "../api";
-
-function formatearFecha(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso + "T00:00:00").toLocaleDateString("es-AR");
-}
+import { analizarON, formatearFechaCorta, formatearUSD } from "../utils/analisis";
 
 function formatearTipoMercado(tipo: string): string {
   if (tipo.toLowerCase() === "primario") return "Primario";
@@ -16,6 +12,7 @@ export function TablaBonos() {
   const [bonos, setBonos] = useState<Bono[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const cargarBonos = () =>
     fetchBonos()
@@ -58,35 +55,53 @@ export function TablaBonos() {
 
       {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-4 py-3">Ticker</th>
-            <th className="px-4 py-3">Emisor</th>
-            <th className="px-4 py-3">Banco</th>
-            <th className="px-4 py-3">Tipo mercado</th>
-            <th className="px-4 py-3">Inicio</th>
-            <th className="px-4 py-3">Vencimiento</th>
-            <th className="px-4 py-3 text-right">Monto</th>
-            <th className="px-4 py-3 text-right">Tasa</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {bonos.map((b) => (
-            <tr key={b.id} className="hover:bg-slate-50">
-              <td className="px-4 py-3 font-medium text-slate-900">{b.ticker ?? "—"}</td>
-              <td className="px-4 py-3 text-slate-700">{b.empresa}</td>
-              <td className="px-4 py-3 text-slate-700">{b.banco}</td>
-              <td className="px-4 py-3 text-slate-700">{formatearTipoMercado(b.tipo_mercado)}</td>
-              <td className="px-4 py-3 text-slate-700">{formatearFecha(b.fecha_inicio)}</td>
-              <td className="px-4 py-3 text-slate-700">{formatearFecha(b.fecha_vencimiento)}</td>
-              <td className="px-4 py-3 text-right text-slate-700">{b.monto_nominal.toLocaleString("es-AR")}</td>
-              <td className="px-4 py-3 text-right text-slate-700">{b.tasa_nominal_anual.toFixed(2)}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="space-y-3">
+        {bonos.map((b) => {
+          const analisis = analizarON(b);
+          const isOpen = expandedId === b.id;
+          return (
+            <div key={b.id} className="rounded-xl border border-slate-200 bg-white shadow-sm">
+              <button
+                type="button"
+                onClick={() => setExpandedId(isOpen ? null : b.id)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">{b.ticker ?? "—"} · {b.empresa}</p>
+                  <p className="text-sm text-slate-500">{b.banco} · {formatearTipoMercado(b.tipo_mercado)}</p>
+                </div>
+                <div className="text-right text-sm text-slate-500">
+                  <p>{formatearFechaCorta(b.fecha_inicio)}</p>
+                  <p>Vto. {formatearFechaCorta(b.fecha_vencimiento)}</p>
+                </div>
+              </button>
+              {isOpen && (
+                <div className="border-t border-slate-100 px-4 py-4 text-sm text-slate-700">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg bg-slate-50 p-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Ganancia acumulada</p>
+                      <p className="mt-1 text-lg font-semibold text-slate-900">{formatearUSD(analisis.interesesAcumulados)}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 p-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Ganancia esperada al vencimiento</p>
+                      <p className="mt-1 text-lg font-semibold text-slate-900">{formatearUSD(analisis.interesesTotales)}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 p-3">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Valor final estimado</p>
+                      <p className="mt-1 text-lg font-semibold text-slate-900">{formatearUSD(analisis.valorFinalEstimado)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full bg-teal-100 px-2.5 py-1 font-medium text-teal-700">Rentabilidad: {analisis.rentabilidadTotal.toFixed(2)}%</span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-600">Estado: {analisis.estado}</span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-600">Progreso: {analisis.porcentajeCompletado.toFixed(0)}%</span>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-600">Días restantes: {analisis.diasRestantes}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
